@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
 
 app = FastAPI()
@@ -6,18 +7,37 @@ app = FastAPI()
 
 class Student:
     """A class to represent a student"""
-    student_id: int
-    full_names: str
-    email: str
-    gender: str
-    course: str
-
     def __init__(self, student_id, full_names, email, gender, course):
         self.student_id = student_id
         self.full_names = full_names
         self.email = email
         self.gender = gender
         self.course = course
+
+
+class StudentBodyRequest(BaseModel):
+    """A class to represent the student body request
+    and to validate the data passed by the client to
+    API"""
+    student_id: int = Field(gt=0)
+    full_names: str = Field(min_length=2, max_length=255)
+    email: str = Field(min_length=10, max_length=255)
+    gender: str = Field(min_length=4, max_length=10)
+    course: str = Field(min_length=3, max_length=100)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "student_id": 1,
+                    "full_names": "Sophia Wiggans",
+                    "email": "swiggans0@unicef.org",
+                    "gender": "Male",
+                    "course": "Computer Science"
+                }
+            ]
+        }
+    }
 
 
 STUDENTS = [
@@ -64,17 +84,17 @@ async def read_students_by_gender(gender: str):
 
 
 @app.post("/create-student")
-async def create_student(new_student=Body()):
+async def create_student(new_student: StudentBodyRequest):
     """Create a new student"""
-    student = Student(**new_student)
+    student = Student(**new_student.model_dump())
     STUDENTS.append(student)
 
 
 @app.put("/update-student")
-async def update_student(student_update=Body()):
+async def update_student(student_update: StudentBodyRequest):
     """Updates a student's details given a student ID"""
     for i, student in enumerate(STUDENTS):
-        if student.student_id == student_update['student_id']:
+        if student.student_id == student_update.student_id:
             STUDENTS[i] = student_update
             break
 
