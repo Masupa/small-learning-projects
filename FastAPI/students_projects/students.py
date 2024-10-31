@@ -1,6 +1,7 @@
 from typing import Optional
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path, Query, HTTPException
 from pydantic import BaseModel, Field
+from starlette import status
 
 
 app = FastAPI()
@@ -50,21 +51,25 @@ STUDENTS = [
 ]
 
 
-@app.get("/students")
+@app.get("/students", status_code=status.HTTP_200_OK)
 async def read_students():
     """Fetch all students"""
     return STUDENTS
 
 
-@app.get("/students/{student_id}")
+@app.get("/students/{student_id}", status_code=status.HTTP_200_OK)
 async def read_student_by_id(student_id: int = Path(gt=0)):
     """Fetch a student given the student ID"""
     for student in STUDENTS:
         if student.student_id == student_id:
             return student
+    raise HTTPException(
+        status_code=404,
+        detail=f"Student with student_id={student_id} is not found!"
+    )
 
 
-@app.get("/students/course/")
+@app.get("/students/course/", status_code=status.HTTP_200_OK)
 async def read_students_by_course(course_name: str = Query(min_length=3, max_length=100)):
     """Fetch all students enrolled in a particular course"""
     students_to_return = []
@@ -74,7 +79,7 @@ async def read_students_by_course(course_name: str = Query(min_length=3, max_len
     return students_to_return
 
 
-@app.get("/students/")
+@app.get("/students/", status_code=status.HTTP_200_OK)
 async def read_students_by_gender(gender: str = Query(min_length=4, max_length=10)):
     """Fetch all students of a given gender"""
     students_to_return = []
@@ -84,7 +89,7 @@ async def read_students_by_gender(gender: str = Query(min_length=4, max_length=1
     return students_to_return
 
 
-@app.post("/create-student")
+@app.post("/create-student", status_code=status.HTTP_201_CREATED)
 async def create_student(new_student: StudentBodyRequest):
     """Create a new student"""
     student = Student(**new_student.model_dump())
@@ -100,19 +105,33 @@ def find_student_id(student: Student):
     return student
 
 
-@app.put("/update-student")
+@app.put("/update-student", status_code=status.HTTP_204_NO_CONTENT)
 async def update_student(student_update: StudentBodyRequest):
     """Updates a student's details given a student ID"""
+    student_updated = False
     for i, student in enumerate(STUDENTS):
         if student.student_id == student_update.student_id:
             STUDENTS[i] = student_update
+            student_updated = True
             break
+    if not student_updated:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Student with student_id={student_update.student_id} is not found!"
+        )
 
 
-@app.delete("/delete-student/{student_id}")
+@app.delete("/delete-student/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_student(student_id: int = Path(gt=0)):
     """Removes an existing student given a student ID"""
+    student_deleted = False
     for i, student in enumerate(STUDENTS):
         if student.student_id == student_id:
             STUDENTS.pop(i)
+            student_deleted = True
             break
+    if not student_deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Student with student_id={student_id} is not found!"
+        )
