@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Path, Query
 from pydantic import BaseModel, Field
 
 
@@ -57,7 +57,7 @@ async def read_students():
 
 
 @app.get("/students/{student_id}")
-async def read_student_by_id(student_id: int):
+async def read_student_by_id(student_id: int = Path(gt=0)):
     """Fetch a student given the student ID"""
     for student in STUDENTS:
         if student.student_id == student_id:
@@ -65,7 +65,7 @@ async def read_student_by_id(student_id: int):
 
 
 @app.get("/students/course/")
-async def read_students_by_course(course_name: str):
+async def read_students_by_course(course_name: str = Query(min_length=3, max_length=100)):
     """Fetch all students enrolled in a particular course"""
     students_to_return = []
     for student in STUDENTS:
@@ -75,7 +75,7 @@ async def read_students_by_course(course_name: str):
 
 
 @app.get("/students/")
-async def read_students_by_gender(gender: str):
+async def read_students_by_gender(gender: str = Query(min_length=4, max_length=10)):
     """Fetch all students of a given gender"""
     students_to_return = []
     for student in STUDENTS:
@@ -110,7 +110,7 @@ async def update_student(student_update: StudentBodyRequest):
 
 
 @app.delete("/delete-student/{student_id}")
-async def delete_student(student_id: int):
+async def delete_student(student_id: int = Path(gt=0)):
     """Removes an existing student given a student ID"""
     for i, student in enumerate(STUDENTS):
         if student.student_id == student_id:
