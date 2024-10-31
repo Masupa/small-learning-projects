@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
@@ -19,7 +20,7 @@ class StudentBodyRequest(BaseModel):
     """A class to represent the student body request
     and to validate the data passed by the client to
     API"""
-    student_id: int = Field(gt=0)
+    student_id: Optional[int] = Field(description="An option student ID", default=None)
     full_names: str = Field(min_length=2, max_length=255)
     email: str = Field(min_length=10, max_length=255)
     gender: str = Field(min_length=4, max_length=10)
@@ -87,7 +88,16 @@ async def read_students_by_gender(gender: str):
 async def create_student(new_student: StudentBodyRequest):
     """Create a new student"""
     student = Student(**new_student.model_dump())
-    STUDENTS.append(student)
+    STUDENTS.append(find_student_id(student))
+
+
+def find_student_id(student: Student):
+    """Assign the next student_id to a student object"""
+    if len(STUDENTS) == 0:
+        student.student_id = 1
+    else:
+        student.student_id = STUDENTS[-1].student_id + 1
+    return student
 
 
 @app.put("/update-student")
